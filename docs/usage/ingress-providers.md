@@ -62,6 +62,49 @@ spec:
 ...
 ```
 
+## Serving an Ingress over TLS
+
+> [!IMPORTANT]
+> When using the native `traefik` ingress class, adding a `tls:` block to your `Ingress` is **not** enough to serve it over HTTPS. Traefik only enables TLS for a router when the Ingress carries the annotation `traefik.ingress.kubernetes.io/router.tls: "true"`. Forgetting it is the most common reason a TLS service silently stays unreachable on port `443` — the route is only served on the plain HTTP (`web`) entrypoint.
+
+A minimal TLS-enabled `Ingress` therefore looks like this:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app
+  namespace: my-namespace
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"        # required — enables TLS for the router
+    # optional — pin the route to the HTTPS entrypoint:
+    # traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - my-app.example.com
+      secretName: my-app-tls        # Secret of type kubernetes.io/tls holding the cert and key
+  rules:
+    - host: my-app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-app
+                port:
+                  number: 8080
+```
+
+The referenced `secretName` must point to a `kubernetes.io/tls` Secret (containing `tls.crt` and `tls.key`) in the same namespace as the `Ingress`.
+
+> [!NOTE]
+> With the `KubernetesIngressNGINX` provider (ingress class `nginx`), the presence of a `tls:` block is enough — Traefik translates it the way the nginx-ingress addon did, so the `router.tls` annotation is not needed there. The annotation above applies to the native `traefik` ingress class.
+
+For the full set of TLS-related annotations, see the [Traefik Kubernetes Ingress routing configuration](https://doc.traefik.io/traefik/reference/routing-configuration/kubernetes/ingress/).
+
 ## Replicas
 
 The `replicas` field controls the number of Traefik pods in the shoot. The default is `2`.
