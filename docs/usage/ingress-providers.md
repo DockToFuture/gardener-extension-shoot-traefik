@@ -141,10 +141,10 @@ spec:
 
 ## Dashboard
 
-The `dashboard` field enables the Traefik dashboard, which exposes the live routing configuration and diagnostics on port `9000`. The dashboard is only reachable from inside the cluster; access it through `kubectl port-forward`:
+The `dashboard` field enables the Traefik dashboard, which exposes the live routing configuration and diagnostics on port `9000`. The dashboard is reachable only via `kubectl port-forward` to a Traefik pod (port `9000` is not exposed on the pod network and the `traefik` Service does not publish it):
 
 ```bash
-kubectl -n kube-system port-forward svc/traefik 9000:9000
+kubectl -n kube-system port-forward deploy/traefik 9000:9000
 # then open http://localhost:9000/dashboard/
 ```
 
