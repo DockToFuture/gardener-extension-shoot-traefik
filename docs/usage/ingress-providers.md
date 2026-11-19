@@ -232,6 +232,7 @@ All fields live at the top level of `providerConfig` (`apiVersion: traefik.exten
 | `replicas` | int32 | `2` | Number of Traefik pods in the shoot. |
 | `logLevel` | string | `Info` | Traefik log verbosity. One of `Debug`, `Info`, `Warn`, `Error`, `Fatal`, `Panic`. |
 | `dashboard` | bool | `false` | Enables the Traefik dashboard on port `9000`. Not recommended for production-like clusters. |
+| `allowCrossNamespace` | bool | `false` | Permits Traefik CRD objects (e.g. `IngressRoute`) to reference services, middlewares, serversTransports, and TLS options in **other** namespaces. Unsafe on shared or multi-tenant clusters, since it voids namespace isolation; only enable it when every namespace is operated by the same trusted party. |
 | `httpEntrypoint` | string | `Enabled` | Controls the LoadBalancer HTTP (port `80`) behavior. One of `Enabled` (serve HTTP), `Redirect` (301 HTTP→HTTPS), or `Disabled` (no port 80). |
 | `proxyProtocol.enabled` | bool | `true` on AWS, else `false` | Enables PROXY protocol so the real client IP is preserved. Defaults to enabled on AWS (Classic L4 LoadBalancer), disabled elsewhere. |
 | `proxyProtocol.trustedIPs` | []string | shoot node + pod CIDRs | CIDRs or IPs Traefik trusts to send a PROXY header on the `web`/`websecure` entrypoints. |

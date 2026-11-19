@@ -94,6 +94,9 @@ type Config struct {
 	LogLevel string
 	// Dashboard enables the Traefik dashboard on port 9000.
 	Dashboard bool
+	// AllowCrossNamespace permits Traefik CRD objects to reference resources in other namespaces.
+	// Unsafe on shared/multi-tenant clusters; defaults to false.
+	AllowCrossNamespace bool
 	// HTTPEntrypoint controls how the LoadBalancer Service handles plain HTTP (port 80).
 	HTTPEntrypoint config.HTTPEntrypointType
 	// ProxyProtocolEnabled enables PROXY protocol on the LoadBalancer and the web/websecure
@@ -616,8 +619,13 @@ func (d *Deployer) deployment() (*appsv1.Deployment, error) {
 			fmt.Sprintf("--providers.kubernetesingress.ingressclass=%s", ingressClass),
 			"--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik",
 			"--providers.kubernetescrd=true",
-			"--providers.kubernetescrd.allowcrossnamespace=true",
 		)
+		// Cross-namespace references void namespace isolation (a principal in one namespace can
+		// reach services, borrow mTLS material from, or bypass the middlewares of another). Keep
+		// Traefik's upstream-safe default (false) unless explicitly opted in.
+		if d.config.AllowCrossNamespace {
+			args = append(args, "--providers.kubernetescrd.allowcrossnamespace=true")
+		}
 	}
 
 	if d.config.IngressProvider == config.IngressProviderKubernetesIngressNGINX {

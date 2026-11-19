@@ -21,6 +21,10 @@ const (
 	testAPIInsecureFalse = "--api.insecure=false"
 )
 
+// argProviderNGINX is the prefix of the Traefik KubernetesIngressNGINX provider arguments; used in
+// tests to assert the NGINX provider is (not) configured.
+const argProviderNGINX = "--providers.kubernetesingressnginx"
+
 func TestDeployment_ImageOverride(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -110,10 +114,11 @@ func findSubstring(s, substr string) bool {
 
 func TestDeployment_IngressProvider(t *testing.T) {
 	tests := []struct {
-		name            string
-		ingressProvider config.IngressProviderType
-		expectedArgs    []string
-		notExpectedArgs []string
+		name                string
+		ingressProvider     config.IngressProviderType
+		allowCrossNamespace bool
+		expectedArgs        []string
+		notExpectedArgs     []string
 	}{
 		{
 			name:            "KubernetesIngress provider",
@@ -123,10 +128,23 @@ func TestDeployment_IngressProvider(t *testing.T) {
 				"--providers.kubernetesingress.ingressclass=traefik",
 				"--providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik",
 				"--providers.kubernetescrd=true",
+			},
+			notExpectedArgs: []string{
+				argProviderNGINX,
+				// Cross-namespace references are off unless explicitly opted in.
+				"--providers.kubernetescrd.allowcrossnamespace",
+			},
+		},
+		{
+			name:                "KubernetesIngress provider with cross-namespace opt-in",
+			ingressProvider:     config.IngressProviderKubernetesIngress,
+			allowCrossNamespace: true,
+			expectedArgs: []string{
+				"--providers.kubernetescrd=true",
 				"--providers.kubernetescrd.allowcrossnamespace=true",
 			},
 			notExpectedArgs: []string{
-				"--providers.kubernetesingressnginx",
+				argProviderNGINX,
 			},
 		},
 		{
@@ -149,7 +167,7 @@ func TestDeployment_IngressProvider(t *testing.T) {
 				"--providers.kubernetesingress.ingressclass=traefik",
 			},
 			notExpectedArgs: []string{
-				"--providers.kubernetesingressnginx",
+				argProviderNGINX,
 			},
 		},
 	}
@@ -168,8 +186,9 @@ func TestDeployment_IngressProvider(t *testing.T) {
 			}
 
 			config := Config{
-				Replicas:        2,
-				IngressProvider: tt.ingressProvider,
+				Replicas:            2,
+				IngressProvider:     tt.ingressProvider,
+				AllowCrossNamespace: tt.allowCrossNamespace,
 			}
 
 			deployer := NewDeployer(client, logr.Discard(), config, imageVec)
